@@ -94,19 +94,19 @@ var backgroundIndex = 0;
      participants.push(participant);
 
      // Monitor and subscribe to the participant's isActiveInSameEffect property
-    // The callback function will be called whenever the signal's value changes
-    participant.isActiveInSameEffect.monitor().subscribeWithSnapshot({
+  //   // The callback function will be called whenever the signal's value changes
+  //   participant.isActiveInSameEffect.monitor().subscribeWithSnapshot({
           
-      // Capture the participant's ID in the snapshot so that it can be accessed
-      // in the callback function
-      userIndex: participants.indexOf(participant),
+  //     // Capture the participant's ID in the snapshot so that it can be accessed
+  //     // in the callback function
+  //     userIndex: participants.indexOf(participant),
           
-    // Pass the event and snapshot to the callback function
-    }, function(event, snapshot) {
+  //   // Pass the event and snapshot to the callback function
+  //   }, function(event, snapshot) {
           
-      // Call the function that handles participants joining or leaving
-      onUserEnterOrLeave(snapshot.userIndex, event.newValue);
-    });
+  //     // Call the function that handles participants joining or leaving
+  //     onUserEnterOrLeave(snapshot.userIndex, event.newValue);
+  //   });
   });
               
   // Do an initial sort of the active participants when the effect starts
