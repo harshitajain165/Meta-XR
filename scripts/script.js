@@ -25,21 +25,19 @@ const Participants = require('Participants');
 const Patches = require('Patches');
 
 const Multipeer = require('Multipeer');
+
+const Diagnostics = require('Diagnostics');
+
+
+const Time = require('Time');
               
 // Create an empty array to store active participants
 var activeParticipants = [];
 
 var turnIndex = 0;
 
+var backgroundIndex = 0;
 
-// Use export keyword to make a symbol available in scripting debug console
-export const Diagnostics = require('Diagnostics');
-
-// To use variables and functions across files, use export/import keyword
-// export const animationDuration = 10;
-
-// Use import keyword to import a symbol from another file
-// import { animationDuration } from './script.js'
 
 (async function() { // Enable async/await in JS [part 1]
           
@@ -55,10 +53,13 @@ export const Diagnostics = require('Diagnostics');
 
     // Create a message channel to send turn index updates on
     const syncTurnChannel = Multipeer.getMessageChannel('SyncTurnTopic');
+
+    // Create a message channel to send background index updates on
+  const syncBGChannel = Multipeer.getMessageChannel('SyncBGTopic');
               
     // Get the 'Screen Tap and Hold' pulse event from the Patch Editor
     const turnPulseRequest = await Patches.
-                               outputs.getPulse('turnPulseRequest');
+                             outputs.getPulse('turnPulseRequest');
    
               
   // Iterate through each participant in the master list
@@ -76,17 +77,45 @@ export const Diagnostics = require('Diagnostics');
           
     // Pass the event and snapshot to the callback function
     }, function(event, snapshot) {
+
+        // Call the function that handles participants joining or leaving
+        onUserEnterOrLeave(snapshot.userIndex, event.newValue);
+      });
           
-      // Participant join/leave method call will be added here at a
-      // later step
-    });
           
     // Add the participant to the active participants array
     activeParticipants.push(participant);
   });
+
+  // Monitor when a new participant joins the call
+  Participants.onOtherParticipantAdded().subscribe(function(participant) {
+
+     // Add the participant to the master list
+     participants.push(participant);
+
+     // Monitor and subscribe to the participant's isActiveInSameEffect property
+    // The callback function will be called whenever the signal's value changes
+    participant.isActiveInSameEffect.monitor().subscribeWithSnapshot({
+          
+      // Capture the participant's ID in the snapshot so that it can be accessed
+      // in the callback function
+      userIndex: participants.indexOf(participant),
+          
+    // Pass the event and snapshot to the callback function
+    }, function(event, snapshot) {
+          
+      // Call the function that handles participants joining or leaving
+      onUserEnterOrLeave(snapshot.userIndex, event.newValue);
+    });
+  });
               
   // Do an initial sort of the active participants when the effect starts
   sortActiveParticipantList();
+
+  // Do an initial check of whether this participant should display the 
+  // turn panel
+  checkShowTurnPanel();
+              
               
   
   //==============================================
@@ -120,6 +149,74 @@ export const Diagnostics = require('Diagnostics');
     // to the showTurnPanel boolean
     Patches.inputs.setBoolean('showTurnPanel', isMyTurn);
   }
+
+  // Updates the turn index and active participant list when a user 
+  // joins or leaves
+  // This will be passed as the callback function for the master
+  // participant list iteration implemented earlier
+  // If a participant joins 'isActive' is true, if they leave it's false
+  function onUserEnterOrLeave(userIndex, isActive) {
+          
+    // Get a participant from the participant array
+    let participant = participants[userIndex];
+          
+    // Keep a reference of the current turn participant before adding or
+    // removing anyone
+    let currentTurnParticipant = activeParticipants[turnIndex];
+  
+    // If a participant has joined
+    if (isActive) {
+          
+      // Log a message to the console
+      Diagnostics.log("User entered the effect");
+          
+      // Add the participant to the active participants list
+      activeParticipants.push(participant);
+
+      // After 1 second, send the new participant the current background
+      // index
+      // The delay allows them time to set up their messaging subscriptions
+      Time.setTimeout(function() {
+          
+          
+        // Broadcast a message to all other participants, containing the
+        // updated background index value
+        syncBGChannel.sendMessage({'background': backgroundIndex }, false).
+                                                               catch(err => {
+          
+          // If an error occurs, log it to the console
+          Diagnostics.log(err);
+        });
+      }, 1000);   
+          
+    } else {
+    
+      // Log a message to the console
+      Diagnostics.log("User left the effect");
+          
+      // Update the active participants list with the new participant
+      let activeIndex = activeParticipants.indexOf(participant);
+      activeParticipants.splice(activeIndex, 1);
+    }
+
+    // After adding or removing the participant, sort the list again
+    sortActiveParticipantList();
+
+    // If the user whose turn it was is still in the effect, change the
+    // turnIndex to that user's new index
+    if (activeParticipants.includes(currentTurnParticipant)) {
+      turnIndex = activeParticipants.indexOf(currentTurnParticipant);
+  
+    // If the user whose turn it was is no longer in the effect, update the
+    // turnIndex as it could be too high now
+    } else {
+      turnIndex = turnIndex%activeParticipants.length;
+    }
+
+    // Call the function that checks if the text panel should be displayed 
+    // by this participant
+    checkShowTurnPanel();
+  }              
           
  //==============================================
   // Callback Functions 
