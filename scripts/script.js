@@ -1,43 +1,39 @@
-/**
- * (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
- */
+// /**
+//  * (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
+//  */
 
-//==============================================================================
-// Welcome to scripting in Spark AR Studio! Helpful links:
-//
-// Scripting Basics - https://fb.me/spark-scripting-basics
-// Reactive Programming - https://fb.me/spark-reactive-programming
-// Scripting Object Reference - https://fb.me/spark-scripting-reference
-// Changelogs - https://fb.me/spark-changelog
-//
-// Spark AR Studio extension for VS Code - https://fb.me/spark-vscode-plugin
-//
-// For projects created with v87 onwards, JavaScript is always executed in strict mode.
-//==============================================================================
+// //==============================================================================
+// // Welcome to scripting in Spark AR Studio! Helpful links:
+// //
+// // Scripting Basics - https://fb.me/spark-scripting-basics
+// // Reactive Programming - https://fb.me/spark-reactive-programming
+// // Scripting Object Reference - https://fb.me/spark-scripting-reference
+// // Changelogs - https://fb.me/spark-changelog
+// //
+// // Spark AR Studio extension for VS Code - https://fb.me/spark-vscode-plugin
+// //
+// // For projects created with v87 onwards, JavaScript is always executed in strict mode.
+// //==============================================================================
 
 
 
-// How to load in modules
-const Scene = require('Scene');
-// Import the Participants module so that we can use the API
+// // How to load in modules
+ const Scene = require('Scene');
+// Load the required modules
 const Participants = require('Participants');
-
 const Patches = require('Patches');
-
 const Multipeer = require('Multipeer');
-
 const Diagnostics = require('Diagnostics');
-
-
 const Time = require('Time');
               
 // Create an empty array to store active participants
-var activeParticipants = [];
-
+var activeParticipants = [];                        
+              
+// Initialize the turn tracking variable
 var turnIndex = 0;
-
+              
+// Initialize the background index variable
 var backgroundIndex = 0;
-
 
 (async function() { // Enable async/await in JS [part 1]
           
@@ -50,15 +46,15 @@ var backgroundIndex = 0;
   // Add self to the participants array, as it only fetches
   // other participants
   participants.push(self);
-
-    // Create a message channel to send turn index updates on
-    const syncTurnChannel = Multipeer.getMessageChannel('SyncTurnTopic');
-
-    // Create a message channel to send background index updates on
+              
+  // Create a message channel to send turn index updates on
+  const syncTurnChannel = Multipeer.getMessageChannel('SyncTurnTopic');
+              
+  // Create a message channel to send background index updates on
   const syncBGChannel = Multipeer.getMessageChannel('SyncBGTopic');
               
-    // Get the 'Screen Tap and Hold' pulse event from the Patch Editor
-    const turnPulseRequest = await Patches.
+  // Get the 'Screen Tap and Hold' pulse event from the Patch Editor
+  const turnPulseRequest = await Patches.
                              outputs.getPulse('turnPulseRequest');
    
               
@@ -77,45 +73,43 @@ var backgroundIndex = 0;
           
     // Pass the event and snapshot to the callback function
     }, function(event, snapshot) {
-
-        // Call the function that handles participants joining or leaving
-        onUserEnterOrLeave(snapshot.userIndex, event.newValue);
-      });
-          
+      
+      // Call the function that handles participants joining or leaving
+      onUserEnterOrLeave(snapshot.userIndex, event.newValue);
+    });
           
     // Add the participant to the active participants array
     activeParticipants.push(participant);
   });
-
+              
   // Monitor when a new participant joins the call
   Participants.onOtherParticipantAdded().subscribe(function(participant) {
+          
+    // Add the participant to the master list
+    participants.push(participant);
 
-     // Add the participant to the master list
-     participants.push(participant);
-
-     // Monitor and subscribe to the participant's isActiveInSameEffect property
-  //   // The callback function will be called whenever the signal's value changes
-  //   participant.isActiveInSameEffect.monitor().subscribeWithSnapshot({
+    // Monitor and subscribe to the participant's isActiveInSameEffect property
+    // The callback function will be called whenever the signal's value changes
+    participant.isActiveInSameEffect.monitor().subscribeWithSnapshot({
           
-  //     // Capture the participant's ID in the snapshot so that it can be accessed
-  //     // in the callback function
-  //     userIndex: participants.indexOf(participant),
+      // Capture the participant's ID in the snapshot so that it can be accessed
+      // in the callback function
+      userIndex: participants.indexOf(participant),
           
-  //   // Pass the event and snapshot to the callback function
-  //   }, function(event, snapshot) {
+    // Pass the event and snapshot to the callback function
+    }, function(event, snapshot) {
           
-  //     // Call the function that handles participants joining or leaving
-  //     onUserEnterOrLeave(snapshot.userIndex, event.newValue);
-  //   });
+      // Call the function that handles participants joining or leaving
+      onUserEnterOrLeave(snapshot.userIndex, event.newValue);
+    });
   });
               
   // Do an initial sort of the active participants when the effect starts
   sortActiveParticipantList();
-
+              
   // Do an initial check of whether this participant should display the 
   // turn panel
   checkShowTurnPanel();
-              
               
   
   //==============================================
@@ -135,9 +129,9 @@ var backgroundIndex = 0;
         return 1;
       }
     });
-  }
-          
-
+  }            
+        
+              
   // Check whether this participant should display the text panel
   // The panel will only display if it's this participant's turn
   function checkShowTurnPanel() {
@@ -149,7 +143,8 @@ var backgroundIndex = 0;
     // to the showTurnPanel boolean
     Patches.inputs.setBoolean('showTurnPanel', isMyTurn);
   }
-
+              
+              
   // Updates the turn index and active participant list when a user 
   // joins or leaves
   // This will be passed as the callback function for the master
@@ -217,8 +212,9 @@ var backgroundIndex = 0;
     // by this participant
     checkShowTurnPanel();
   }              
-          
- //==============================================
+
+
+  //==============================================
   // Callback Functions 
   //==============================================
               
@@ -246,10 +242,3 @@ var backgroundIndex = 0;
   });
           
 })(); // Enable async/await in JS [part 2]
-
-
-
-
-
-
-
